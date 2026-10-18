@@ -85,8 +85,6 @@ void main() {
     }).toJSCaptureThis;
   });
 
-  // Leave the browser as each test found it, so no test depends on what an
-  // earlier one replaced or removed.
   tearDown(() {
     window.showSaveFilePicker = originalSaveFilePicker;
     _anchorPrototype.click = originalAnchorClick;
