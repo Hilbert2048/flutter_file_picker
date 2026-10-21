@@ -14,7 +14,7 @@ internal object PickerPaths {
      * [externalStorageDirectory].
      */
     fun directoryPath(treeDocumentId: String, externalStorageDirectory: String): String {
-        var volumePath = volumePath(treeDocumentId, externalStorageDirectory)
+        val volumePath = getVolumePath(treeDocumentId, externalStorageDirectory)
         if (volumePath.endsWith(File.separator)) {
             volumePath = volumePath.dropLast(1)
         }
