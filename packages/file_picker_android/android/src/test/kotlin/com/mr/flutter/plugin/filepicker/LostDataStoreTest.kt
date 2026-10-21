@@ -6,7 +6,7 @@ import org.junit.Test
 
 class LostDataStoreTest {
     @Test
-    fun requestRoundTrip() {
+    fun decodeRequestRoundTrip() {
         val request = LostDataStore.PendingRequest(
             type = "image",
             compressionQuality = 50,
