@@ -28,11 +28,6 @@ class LostDataStoreTest {
     }
 
     @Test
-    fun unreadableRequestIsIgnored() {
-        assertNull(LostDataStore.decodeRequest("not json"))
-    }
-
-    @Test
     fun filesRoundTrip() {
         val raw = LostDataStore.encodeFiles(
             listOf(
@@ -63,6 +58,11 @@ class LostDataStoreTest {
 
         assertEquals("out_of_memory", result["errorCode"])
         assertEquals("Too large.", result["errorMessage"])
+    }
+
+    @Test
+    fun unreadableRequestIsIgnored() {
+        assertNull(LostDataStore.decodeRequest("not json"))
     }
 
     @Test

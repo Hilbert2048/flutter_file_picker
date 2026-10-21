@@ -15,14 +15,7 @@ internal object PickerPaths {
      */
     fun directoryPath(treeDocumentId: String, externalStorageDirectory: String): String {
         val volumePath = getVolumePath(treeDocumentId, externalStorageDirectory)
-        if (volumePath.endsWith(File.separator)) {
-            volumePath = volumePath.dropLast(1)
-        }
-
-        var documentPath = documentPath(treeDocumentId)
-        if (documentPath.endsWith(File.separator)) {
-            documentPath = documentPath.dropLast(1)
-        }
+        val documentPath = getDocumentPath(treeDocumentId)
 
         return if (documentPath.isNotEmpty()) {
             if (volumePath.endsWith(documentPath)) {
@@ -51,17 +44,16 @@ internal object PickerPaths {
         val file = File(path)
 
         val safeDir = File(cacheDir.absolutePath + "/file_picker/").canonicalPath
-        if (!file.canonicalPath.startsWith(safeDir)) {
-            throw SecurityException("Path traversal detected. Escaping the intended cache directory is not allowed.")
-        }
-        return file
+        return file.takeIf { it.canonicalPath.startsWith(safeDir) }
+            ?: throw SecurityException("Path traversal detected. Escaping the intended cache directory is not allowed.")
     }
 
-    private fun volumePath(treeDocumentId: String, externalStorageDirectory: String): String {
+    /** The path of the volume, without a trailing separator. */
+    private fun getVolumePath(treeDocumentId: String, externalStorageDirectory: String): String {
         val parts = treeDocumentId.split(":")
 
         // Check if the URI corresponds to external storage
-        return if (parts.size > 1) {
+        val volumePath = if (parts.size > 1) {
             val volumeId = parts[0]
             val path = parts[1]
 
@@ -74,11 +66,13 @@ internal object PickerPaths {
         } else {
             "$externalStorageDirectory/${parts.last()}"
         }
+        return volumePath.removeSuffix(File.separator)
     }
 
-    private fun documentPath(treeDocumentId: String): String {
+    /** The path inside the volume, without a trailing separator. */
+    private fun getDocumentPath(treeDocumentId: String): String {
         val split = treeDocumentId.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        return if ((split.size >= 2)) split[1]
-        else File.separator
+        val path = if ((split.size >= 2)) split[1] else File.separator
+        return path.removeSuffix(File.separator)
     }
 }

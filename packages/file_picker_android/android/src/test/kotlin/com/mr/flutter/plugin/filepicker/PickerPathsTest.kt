@@ -8,6 +8,7 @@ import org.junit.Test
 
 class PickerPathsTest {
     private val storage = "/storage/emulated/0"
+    private val cacheDir: File = Files.createTempDirectory("cache").toFile()
 
     @Test
     fun primaryStorageDirectory() {
@@ -37,8 +38,6 @@ class PickerPathsTest {
             PickerPaths.directoryPath("primary:Download/", storage)
         )
     }
-
-    private val cacheDir: File = Files.createTempDirectory("cache").toFile()
 
     @Test
     fun cachedFileGetsItsOwnDirectory() {

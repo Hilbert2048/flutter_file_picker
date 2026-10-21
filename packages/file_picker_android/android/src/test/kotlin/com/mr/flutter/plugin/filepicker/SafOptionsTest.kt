@@ -32,6 +32,7 @@ class SafOptionsTest {
 
         assertTrue(options.lifetimeGrant)
         assertFalse(options.persistsGrant)
+        assertEquals("readOnly", options.accessName)
     }
 
     @Test
@@ -42,6 +43,7 @@ class SafOptionsTest {
         assertFalse(options.lifetimeGrant)
         assertFalse(options.readWrite)
         assertTrue(options.autoPersist)
+        assertEquals("readOnly", options.accessName)
     }
 
     // Dart used to send the options one level deeper, where they were
@@ -54,5 +56,6 @@ class SafOptionsTest {
 
         assertFalse(options.lifetimeGrant)
         assertFalse(options.readWrite)
+        assertEquals("readOnly", options.accessName)
     }
 }
