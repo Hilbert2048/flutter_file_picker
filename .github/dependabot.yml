@@ -19,6 +19,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_platform_interface"
@@ -28,6 +33,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_android"
@@ -37,6 +47,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_darwin"
@@ -46,6 +61,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_linux"
@@ -55,6 +75,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_windows"
@@ -64,6 +89,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/packages/file_picker_web"
@@ -73,6 +103,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   - package-ecosystem: "pub"
     directory: "/example"
@@ -82,6 +117,11 @@ updates:
       pub-dependencies:
         patterns:
           - "*"
+    ignore:
+      # cross_file 0.4 breaks apps that also use image_picker, file_selector
+      # or camera, which still require 0.3. It ships with 14.0.0 (#2236).
+      - dependency-name: "cross_file"
+        versions: [">=0.4.0"]
 
   # Gradle dependencies for Android native plugin
   - package-ecosystem: "gradle"
@@ -92,3 +132,8 @@ updates:
       gradle-dependencies:
         patterns:
           - "*"
+    ignore:
+      # Pinned on purpose in the module's buildscript, see the comment there
+      # (#2170).
+      - dependency-name: "org.jetbrains.kotlin:kotlin-gradle-plugin"
+      - dependency-name: "com.android.tools.build:gradle"
