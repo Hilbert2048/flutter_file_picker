@@ -19,7 +19,7 @@ class LostDataStoreTest {
     }
 
     @Test
-    fun requestWithoutSafOptions() {
+    fun decodeRequestWithoutSafOptionsRoundTrip() {
         val request = LostDataStore.PendingRequest("any", 0, null)
 
         val restored = LostDataStore.decodeRequest(LostDataStore.encodeRequest(request))
