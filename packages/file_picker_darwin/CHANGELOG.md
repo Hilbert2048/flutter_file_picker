@@ -1,3 +1,7 @@
+## 2.3.4
+
+- On macOS, the open, save and directory panels now attach to the key window, so they appear in the window the user is in when an app has several windows. When no window is visible, they run app-modal instead of completing with `null`.
+
 ## 2.3.3
 
 - The `load_failed` error on iOS now lists in its `details` why each picked item could not be loaded. [#2274](https://github.com/vicajilau/flutter_file_picker/pull/2274)
