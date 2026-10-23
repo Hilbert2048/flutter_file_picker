@@ -172,8 +172,6 @@ abstract final class FilePicker {
     String mimeType = 'application/octet-stream',
     String? dialogTitle,
     String? initialDirectory,
-    FileType type = FileType.any,
-    List<String>? allowedExtensions,
     Function(FilePickerStatus)? onFileSaving,
     WindowsOptions windowsOptions = const WindowsOptions(),
     LinuxOptions linuxOptions = const LinuxOptions(),
