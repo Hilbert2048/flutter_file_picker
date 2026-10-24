@@ -1,6 +1,6 @@
 ## 2.3.4
 
-- On macOS, the open, save and directory panels now attach to the key window, so they appear in the window the user is in when an app has several windows. When no window is visible, they run app-modal instead of completing with `null`.
+- On macOS, the pickers now open in the window the user is in, and still open when no window is visible instead of completing with `null`. [#2277](https://github.com/vicajilau/flutter_file_picker/pull/2277)
 
 ## 2.3.3
 
