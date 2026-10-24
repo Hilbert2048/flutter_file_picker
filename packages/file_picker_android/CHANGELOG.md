@@ -1,3 +1,7 @@
+## 2.1.2
+
+- Fixed `explorer_not_found` on Android 11+ devices where the documents UI is not visible to the app (seen on Xiaomi HyperOS), by declaring `OPEN_DOCUMENT`, `OPEN_DOCUMENT_TREE` and `CREATE_DOCUMENT` in `<queries>`. Picking a custom or any file type, picking a directory and saving a file no longer fail before the picker opens. [#2282](https://github.com/vicajilau/flutter_file_picker/pull/2282)
+
 ## 2.1.1
 
 - Fixed `AndroidSAFOptions` being ignored, so the grant, access mode and persistence they request now apply. [#2257](https://github.com/vicajilau/flutter_file_picker/issues/2257)
