@@ -1,6 +1,7 @@
 ## 2.1.2
 
 - Fixed `explorer_not_found` on Android 11+ devices that hide the documents picker from apps, such as some Xiaomi HyperOS versions. [#2282](https://github.com/vicajilau/flutter_file_picker/pull/2282)
+- The picker now opens directly and only reports `explorer_not_found` when no app can handle it, instead of asking Android first, which can miss apps hidden from the plugin.
 
 ## 2.1.1
 

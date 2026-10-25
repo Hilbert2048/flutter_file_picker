@@ -2,6 +2,7 @@ package com.mr.flutter.plugin.filepicker
 
 import android.app.Activity
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -239,15 +240,7 @@ object FileUtils {
                 putExtra("multi-pick", isMultipleSelection)
             }
         }
-        if (intent.resolveActivity(activity.packageManager) != null) {
-            activity.startActivityForResult(intent, REQUEST_CODE)
-        } else {
-            Log.e(
-                FilePickerDelegate.TAG,
-                "Can't find a valid activity to handle the request. Make sure you've a file explorer installed."
-            )
-            finishWithError("explorer_not_found", "Can't find a valid activity to handle the request. Make sure you have a file explorer installed.")
-        }
+        launchFileExplorer(intent, REQUEST_CODE)
     }
 
     /**
@@ -390,12 +383,28 @@ object FileUtils {
                 intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialDirectory.toUri())
             }
         }
-        if (intent.resolveActivity(activity.packageManager) != null) {
-            activity.startActivityForResult(intent, SAVE_FILE_CODE)
-        } else {
+        launchFileExplorer(intent, SAVE_FILE_CODE)
+    }
+
+    /**
+     * Starts [intent], or fails with `explorer_not_found` when no app on the
+     * device can handle it.
+     *
+     * Asking `resolveActivity()` first is not reliable: since Android 11 it
+     * only sees the apps this app is allowed to see, and some devices hide the
+     * system documents picker from it even though it can be launched (#2282).
+     * Starting the activity does not depend on that visibility, so the
+     * activity is started directly and only a real absence of a handler is
+     * reported, as Android recommends.
+     */
+    private fun FilePickerDelegate.launchFileExplorer(intent: Intent, requestCode: Int) {
+        try {
+            activity.startActivityForResult(intent, requestCode)
+        } catch (e: ActivityNotFoundException) {
             Log.e(
                 FilePickerDelegate.TAG,
-                "Can't find a valid activity to handle the request. Make sure you've a file explorer installed."
+                "Can't find a valid activity to handle the request. Make sure you've a file explorer installed.",
+                e
             )
             finishWithError("explorer_not_found", "Can't find a valid activity to handle the request. Make sure you have a file explorer installed.")
         }
