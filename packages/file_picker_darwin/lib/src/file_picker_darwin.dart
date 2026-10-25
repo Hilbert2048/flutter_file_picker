@@ -1,3 +1,6 @@
+/// @docImport 'dart:ui';
+library;
+
 import 'dart:async';
 import 'dart:io';
 
@@ -14,8 +17,8 @@ class FilePickerDarwin extends FilePickerPlatform {
     FilePickerPlatform.instance = FilePickerDarwin();
   }
 
-  /// Creates a picker whose macOS panels attach to the window of the Flutter
-  /// view [viewId].
+  /// Creates a picker whose macOS panels attach to the window of the
+  /// [FlutterView] with the given [viewId].
   ///
   /// Without a [viewId], panels attach to the key window. With one, a picker
   /// whose window is closed or hidden throws a [PlatformException] with the
@@ -27,7 +30,8 @@ class FilePickerDarwin extends FilePickerPlatform {
   /// ```
   FilePickerDarwin({this.viewId});
 
-  /// The Flutter view whose window owns this picker's panels on macOS.
+  /// The [FlutterView.viewId] of the view whose window owns this picker's
+  /// panels on macOS.
   final int? viewId;
 
   static const String _tag = 'FilePickerDarwin';
