@@ -50,6 +50,11 @@ void main() {
       picker.getDirectoryPath,
       picker.pickFileAndDirectoryPaths,
       picker.pickFiles,
+      () => picker.saveFile(
+        fileName: 'a.txt',
+        bytes: Uint8List(0),
+        mimeType: 'text/plain',
+      ),
     ]) {
       await expectLater(
         pick(),
