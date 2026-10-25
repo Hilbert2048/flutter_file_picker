@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:file_picker_darwin/file_picker_darwin.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,28 +16,51 @@ void main() {
     });
   });
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
-  test(
-    'concurrent pickers retain their own origin, including view zero',
-    () async {
-      final picker = FilePickerDarwin();
-      final firstReady = Completer<void>();
-      final secondReady = Completer<void>();
-      final first = FilePickerDarwin.withWindow(0, () async {
-        await firstReady.future;
-        return picker.getDirectoryPath();
-      });
-      final second = FilePickerDarwin.withWindow(99, () async {
-        await secondReady.future;
-        return picker.getDirectoryPath();
-      });
-      secondReady.complete();
-      await second;
-      firstReady.complete();
-      await first;
-      await picker.getDirectoryPath();
-      expect(arguments[0]['viewId'], 99);
-      expect(arguments[1]['viewId'], 0);
-      expect(arguments[2], isNot(contains('viewId')));
-    },
-  );
+
+  test('each instance sends its own view, including view zero', () async {
+    await Future.wait([
+      FilePickerDarwin(viewId: 0).getDirectoryPath(),
+      FilePickerDarwin(viewId: 99).getDirectoryPath(),
+    ]);
+    await FilePickerDarwin().getDirectoryPath();
+    expect(arguments[0]['viewId'], 0);
+    expect(arguments[1]['viewId'], 99);
+    expect(arguments[2], isNot(contains('viewId')));
+  });
+
+  test('every picker method sends the view', () async {
+    final picker = FilePickerDarwin(viewId: 7);
+    await picker.pickFiles();
+    await picker.pickFileAndDirectoryPaths();
+    await picker.getDirectoryPath();
+    await picker.saveFile(
+      fileName: 'a.txt',
+      bytes: Uint8List(0),
+      mimeType: 'text/plain',
+    );
+    expect(arguments.map((a) => a['viewId']), [7, 7, 7, 7]);
+  });
+
+  test('a missing window is an error, not a cancel', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(code: 'window_not_found');
+    });
+    final picker = FilePickerDarwin(viewId: 3);
+    for (final pick in <Future<Object?> Function()>[
+      picker.getDirectoryPath,
+      picker.pickFileAndDirectoryPaths,
+      picker.pickFiles,
+    ]) {
+      await expectLater(
+        pick(),
+        throwsA(
+          isA<PlatformException>().having(
+            (e) => e.code,
+            'code',
+            'window_not_found',
+          ),
+        ),
+      );
+    }
+  });
 }

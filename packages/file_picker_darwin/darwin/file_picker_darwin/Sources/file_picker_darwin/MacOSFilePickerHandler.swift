@@ -120,7 +120,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
             let extensions = args["allowedExtensions"] as? [String] ?? []
             self.applyExtensions(dialog, extensions, method: call.method)
 
-            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value) { response in
+            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value, result: result) { response in
                 if response != .OK {
                     result(nil)
                     return
@@ -176,7 +176,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
             let extensions = args["allowedExtensions"] as? [String] ?? []
             self.applyExtensions(dialog, extensions, method: call.method)
 
-            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value) { response in
+            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value, result: result) { response in
                 if response != .OK {
                     result(nil)
                     return
@@ -223,7 +223,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
             dialog.canChooseDirectories = true
             dialog.canChooseFiles = false
 
-            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value) { response in
+            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value, result: result) { response in
                 if response != .OK {
                     result(nil)
                     return
@@ -269,7 +269,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
                 self.applyDefaultExtension(dialog, fileName: args["fileName"] as? String ?? "")
             }
 
-            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value) { response in
+            self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value, result: result) { response in
                 if response != .OK {
                     result(nil)
                     return
@@ -411,16 +411,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
     /// The window the panel attaches to as a sheet. In a multi-window app this is the
     /// key window, which may not host `registrar.view`. A hidden window is never used,
     /// because a sheet on it would be invisible.
-    private func getFlutterWindow(viewId: Int64? = nil) -> NSWindow? {
-        if let viewId = viewId {
-            let engine = (registrar.view?.window?.contentViewController as? FlutterViewController)?.engine
-            return NSApp.windows.first { window in
-                guard window.isVisible,
-                    let controller = window.contentViewController as? FlutterViewController,
-                    let engine = engine else { return false }
-                return controller.engine === engine && controller.viewIdentifier == viewId
-            }
-        }
+    private func getFlutterWindow() -> NSWindow? {
         if let keyWindow = NSApp.keyWindow, keyWindow.isVisible {
             return keyWindow
         }
@@ -430,17 +421,39 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
         return nil
     }
 
+    /// The visible window of this engine that hosts the Flutter view `viewId`. The
+    /// engine is matched by its messenger, since `registrar.view` is nil once view 0 closes.
+    private func window(forViewId viewId: Int64) -> NSWindow? {
+        return NSApp.windows.first { window in
+            guard window.isVisible,
+                let controller = window.contentViewController as? FlutterViewController
+            else { return false }
+            return controller.engine.binaryMessenger === registrar.messenger
+                && controller.viewIdentifier == viewId
+        }
+    }
+
     /// Shows the panel as a sheet on the Flutter window, or app-modal when there is no
-    /// visible window to attach it to.
+    /// visible window to attach it to. A requested view without a visible window fails
+    /// with `window_not_found`, so the app can tell it apart from a cancel.
     private func present(
         _ panel: NSSavePanel,
-        viewId: Int64? = nil,
+        viewId: Int64?,
+        result: @escaping FlutterResult,
         completionHandler: @escaping (NSApplication.ModalResponse) -> Void
     ) {
-        if let window = getFlutterWindow(viewId: viewId) {
+        if let viewId = viewId {
+            guard let window = window(forViewId: viewId) else {
+                result(FlutterError(
+                    code: "window_not_found",
+                    message: "No visible window hosts Flutter view \(viewId)",
+                    details: nil
+                ))
+                return
+            }
             panel.beginSheetModal(for: window, completionHandler: completionHandler)
-        } else if viewId != nil {
-            completionHandler(.cancel)
+        } else if let window = getFlutterWindow() {
+            panel.beginSheetModal(for: window, completionHandler: completionHandler)
         } else {
             completionHandler(panel.runModal())
         }

@@ -1,6 +1,6 @@
 ## 2.4.0
 
-- Added `FilePickerDarwin.withWindow(viewId, action)`. On macOS, pickers started inside `action` attach to the window of that Flutter view, so a multi-window app can choose the owner window per request. If that window is closed or hidden, the picker completes with `null`.
+- On macOS, `FilePickerDarwin(viewId:)` attaches the pickers to that Flutter view's window, and fails with `window_not_found` when that window is closed or hidden.
 
 ## 2.3.4
 

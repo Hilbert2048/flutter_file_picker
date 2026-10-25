@@ -14,15 +14,24 @@ class FilePickerDarwin extends FilePickerPlatform {
     FilePickerPlatform.instance = FilePickerDarwin();
   }
 
-  static final Object _viewIdKey = Object();
+  /// Creates a picker whose macOS panels attach to the window of the Flutter
+  /// view [viewId].
+  ///
+  /// Without a [viewId], panels attach to the key window. With one, a picker
+  /// whose window is closed or hidden throws a [PlatformException] with the
+  /// code `window_not_found`. Ignored on iOS.
+  ///
+  /// ```dart
+  /// final picker = FilePickerDarwin(viewId: View.of(context).viewId);
+  /// final path = await picker.getDirectoryPath();
+  /// ```
+  FilePickerDarwin({this.viewId});
 
-  /// Runs pickers with an explicit Flutter view owner, independently per request.
-  static Future<T> withWindow<T>(int? viewId, Future<T> Function() action) =>
-      runZoned(action, zoneValues: {_viewIdKey: viewId});
-
-  static int? get _ownerViewId => Zone.current[_viewIdKey] as int?;
+  /// The Flutter view whose window owns this picker's panels on macOS.
+  final int? viewId;
 
   static const String _tag = 'FilePickerDarwin';
+  static const String _windowNotFound = 'window_not_found';
 
   /// The method channel used to interact with the native platform.
   @visibleForTesting
@@ -120,7 +129,7 @@ class FilePickerDarwin extends FilePickerPlatform {
 
       final List<Map<Object?, Object?>>? result = await methodChannel
           .invokeListMethod<Map<Object?, Object?>>(typeName, {
-            'viewId': ?_ownerViewId,
+            'viewId': ?viewId,
             'allowMultipleSelection': allowMultiple,
             'allowedExtensions': allowedExtensions,
             'compressionQuality': compressionQuality,
@@ -161,12 +170,14 @@ class FilePickerDarwin extends FilePickerPlatform {
     try {
       final List<String>? result = await methodChannel
           .invokeListMethod<String>('pickFileAndDirectoryPaths', {
+            'viewId': ?viewId,
             'dialogTitle': dialogTitle,
             'initialDirectory': initialDirectory,
             'allowedExtensions': allowedExtensions,
           });
       return result ?? [];
     } on PlatformException catch (ex) {
+      if (ex.code == _windowNotFound) rethrow;
       print(
         '[$_tag] Could not resolve file and directory paths: ${ex.message}',
       );
@@ -185,11 +196,12 @@ class FilePickerDarwin extends FilePickerPlatform {
   }) async {
     try {
       return await methodChannel.invokeMethod<String>('dir', {
-        'viewId': ?_ownerViewId,
+        'viewId': ?viewId,
         'dialogTitle': dialogTitle,
         'initialDirectory': initialDirectory,
       });
     } on PlatformException catch (ex) {
+      if (ex.code == _windowNotFound) rethrow;
       print('[$_tag] Could not resolve directory path: ${ex.message}');
     }
     return null;
@@ -256,7 +268,7 @@ class FilePickerDarwin extends FilePickerPlatform {
 
       final String? savedPath = await methodChannel
           .invokeMethod<String>("save", {
-            'viewId': ?_ownerViewId,
+            'viewId': ?viewId,
             "fileName": fileName,
             "fileType": mimeType,
             "initialDirectory": initialDirectory,
