@@ -20,9 +20,10 @@ class FilePickerDarwin extends FilePickerPlatform {
   /// Creates a picker whose macOS panels attach to the window of the
   /// [FlutterView] with the given [viewId].
   ///
-  /// Without a [viewId], panels attach to the key window. With one, a picker
-  /// whose window is closed or hidden throws a [PlatformException] with the
-  /// code `window_not_found`. Ignored on iOS.
+  /// Without a [viewId], panels attach to the key window, or open as a
+  /// standalone modal window when no Flutter window is visible. With one, a
+  /// picker whose window is closed or hidden throws a [PlatformException] with
+  /// the code `window_not_found`. Ignored on iOS.
   ///
   /// ```dart
   /// final picker = FilePickerDarwin(viewId: View.of(context).viewId);
