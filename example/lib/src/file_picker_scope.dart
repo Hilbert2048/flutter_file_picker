@@ -7,6 +7,10 @@ import 'package:flutter/widgets.dart';
 ///
 /// On macOS each [View] gets a [FilePickerDarwin] bound to that view, so in a
 /// multi-window app the panels attach to the window that asked for them.
+///
+/// Most apps don't need this: call `FilePicker.pickFile()` and friends
+/// directly. Only multi-window macOS apps need this scope, so that each picker
+/// opens in its own window.
 class FilePickerScope extends StatelessWidget {
   const FilePickerScope({super.key, required this.child});
 
