@@ -10,6 +10,7 @@ class SafOptionsTest {
     fun withoutOptionsRequestsNothing() {
         val options = SafOptions.from(null)
 
+        assertTrue(options.cacheFiles)
         assertFalse(options.requested)
         assertFalse(options.persistsGrant)
         assertEquals("readOnly", options.accessName)
@@ -44,6 +45,13 @@ class SafOptionsTest {
         assertFalse(options.readWrite)
         assertTrue(options.autoPersist)
         assertEquals("readOnly", options.accessName)
+    }
+
+    @Test
+    fun referenceModeRetainsPersistedGrantWithoutCaching() {
+        val options = SafOptions.from(mapOf("grant" to "lifetime", "cacheFiles" to false))
+        assertTrue(options.persistsGrant)
+        assertFalse(options.cacheFiles)
     }
 
     // Dart used to send the options one level deeper, where they were

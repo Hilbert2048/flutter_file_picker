@@ -71,23 +71,14 @@ object FileUtils {
             }
 
             val safOptions = SafOptions.from(androidSafOptions)
+            if (!safOptions.cacheFiles && !safOptions.persistsGrant) {
+                finishWithError("invalid_arguments", "Reference selection requires a persisted lifetime grant")
+                return@launch
+            }
             val isReadWrite = safOptions.readWrite
             val hasSafOptions = safOptions.requested
 
-            fun maybeTakePersistableUriPermission(uri: Uri) {
-                 if (safOptions.persistsGrant) {
-                     try {
-                         val flags = if (isReadWrite) {
-                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                         } else {
-                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                         }
-                         activity.contentResolver.takePersistableUriPermission(uri, flags)
-                     } catch (e: SecurityException) {
-                         Log.e(TAG, "Failed to take persistable URI permission for $uri", e)
-                     }
-                 }
-            }
+            val referenceGrants = ReferenceGrantSession(activity.contentResolver, safOptions)
 
             val files = mutableListOf<FileInfo>()
 
@@ -96,18 +87,18 @@ object FileUtils {
                     data.clipData != null -> {
                         for (i in 0 until data.clipData!!.itemCount) {
                             var uri = data.clipData!!.getItemAt(i).uri
-                            maybeTakePersistableUriPermission(uri)
-                            uri = processUri(activity, uri, compressionQuality)
-                            addFile(activity, uri, files, hasSafOptions, isReadWrite)
+                            referenceGrants.take(uri)
+                            if (safOptions.cacheFiles) uri = processUri(activity, uri, compressionQuality)
+                            addFile(activity, uri, files, hasSafOptions, isReadWrite, safOptions.cacheFiles)
                         }
                         handleFileResult(files)
                     }
 
                     data.data != null -> {
-                        var uri = processUri(activity, data.data!!, compressionQuality)
+                        var uri = if (safOptions.cacheFiles) processUri(activity, data.data!!, compressionQuality) else data.data!!
 
                         if (type == "dir") {
-                            maybeTakePersistableUriPermission(data.data!!)
+                            referenceGrants.take(data.data!!)
                             if (androidSafOptions != null) {
                                 finishWithSuccess(data.data!!.toString())
                             } else {
@@ -123,8 +114,8 @@ object FileUtils {
                                 }
                             }
                         } else {
-                            maybeTakePersistableUriPermission(data.data!!)
-                            addFile(activity, uri, files, hasSafOptions, isReadWrite)
+                            referenceGrants.take(data.data!!)
+                            addFile(activity, uri, files, hasSafOptions, isReadWrite, safOptions.cacheFiles)
                             handleFileResult(files)
                         }
                     }
@@ -132,8 +123,8 @@ object FileUtils {
                     data.extras?.containsKey("selectedItems") == true -> {
                         val fileUris = getSelectedItems(data.extras!!)
                         fileUris?.filterIsInstance<Uri>()?.forEach { uri ->
-                            maybeTakePersistableUriPermission(uri)
-                            addFile(activity, uri, files, hasSafOptions, isReadWrite)
+                            referenceGrants.take(uri)
+                            addFile(activity, uri, files, hasSafOptions, isReadWrite, safOptions.cacheFiles)
                         }
                         handleFileResult(files)
                     }
@@ -143,13 +134,17 @@ object FileUtils {
                         "Unknown activity error, please fill an issue."
                     )
                 }
+            } catch (_: ReferenceAccessDenied) {
+                finishWithError("permission_denied", "Unable to persist document access")
             } catch (oom: OutOfMemoryError) {
+                if (!safOptions.cacheFiles) referenceGrants.rollback()
                 Log.e(TAG, "Out of memory while processing selected files.", oom)
                 finishWithError(
                     "out_of_memory",
                     "Selected files are too large to process."
                 )
             } catch (e: Exception) {
+                if (!safOptions.cacheFiles) referenceGrants.rollback()
                 finishWithError("file_picker_error", e.message ?: "Unknown error")
             }
         }
@@ -234,6 +229,12 @@ object FileUtils {
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, isMultipleSelection)
                 putExtra("multi-pick", isMultipleSelection)
             }
+        }
+        val referenceOptions = SafOptions.from(androidSafOptions)
+        if (!referenceOptions.cacheFiles && type != "dir") {
+            intent.action = Intent.ACTION_OPEN_DOCUMENT
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            if (referenceOptions.readWrite) intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }
         launchFileExplorer(intent, REQUEST_CODE)
     }
@@ -484,9 +485,10 @@ object FileUtils {
         uri: Uri,
         files: MutableList<FileInfo>,
         hasSafOptions: Boolean = false,
-        isReadWrite: Boolean = false
+        isReadWrite: Boolean = false,
+        cacheFiles: Boolean = true
     ) {
-        openFileStream(activity, uri, hasSafOptions, isReadWrite)?.let { file ->
+        openFileStream(activity, uri, hasSafOptions, isReadWrite, cacheFiles)?.let { file ->
             files.add(file)
         }
     }
@@ -699,8 +701,17 @@ object FileUtils {
         context: Context,
         uri: Uri,
         hasSafOptions: Boolean = false,
-        isReadWrite: Boolean = false
+        isReadWrite: Boolean = false,
+        cacheFiles: Boolean = true
     ): FileInfo? {
+        // Return before allocating a cache path or opening any content stream.
+        if (!cacheFiles) {
+            val handle = java.util.HashMap<String, Any>()
+            handle["uri"] = uri.toString()
+            handle["access"] = if (isReadWrite) "readWrite" else "readOnly"
+            return FileInfo.Builder().withPath(uri.toString()).withUri(uri)
+                .withName(getFileName(uri, context)).withSafHandle(handle).build()
+        }
         var fileInputStream: InputStream? = null
         var fileOutputStream: FileOutputStream? = null
         val fileInfo = FileInfo.Builder()

@@ -24,6 +24,7 @@ final class AndroidSAFOptions {
     this.grant = AndroidSAFGrant.transient,
     this.accessMode = AndroidSAFAccessMode.readOnly,
     this.persistGrant = true,
+    this.cacheFiles = true,
   });
 
   /// The grant to use with the Android Storage Access Framework.
@@ -41,11 +42,22 @@ final class AndroidSAFOptions {
   /// Defaults to `true`.
   final bool persistGrant;
 
+  /// Set false to return original content URIs without opening/copying audio.
+  /// Requires a lifetime grant with automatic persistence. URI consumers must
+  /// use ContentResolver or a URI-capable player, never dart:io File.
+  final bool cacheFiles;
+
   Map<String, Object?> toMap() {
+    if (!cacheFiles && (grant != AndroidSAFGrant.lifetime || !persistGrant)) {
+      throw ArgumentError(
+        'Reference selection requires a persisted lifetime grant',
+      );
+    }
     return {
       'grant': grant.name,
       'access': accessMode.name,
       'autoPersist': persistGrant,
+      'cacheFiles': cacheFiles,
     };
   }
 }

@@ -23,12 +23,15 @@ final class IOSFilePickerHandler: NSObject,
     private var isDirectoryPicker = false
     private var isFileAndDirectoryPicker = false
     private var isSaveFile = false
+    private var openInPlace = false
+    private let references = DocumentReferenceStore()
 
     init(registrar: FlutterPluginRegistrar) {
         self.registrar = registrar
     }
 
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        if references.handle(call, result: result) { return }
         if call.method == "clear" {
             _ = clearTemporaryFiles()
             result(nil)
@@ -44,6 +47,7 @@ final class IOSFilePickerHandler: NSObject,
             return
         }
 
+        openInPlace = false
         self.result = result
 
         if call.method == "dir" {
@@ -72,6 +76,7 @@ final class IOSFilePickerHandler: NSObject,
             arguments["assetRepresentationMode"] as? String)
         orderedSelection = (arguments["orderedSelection"] as? Bool) ?? true
         copyMedia = (arguments["copyMedia"] as? Bool) ?? true
+        openInPlace = (arguments["openInPlace"] as? Bool) ?? false
 
         switch call.method {
         case "any":
@@ -81,7 +86,8 @@ final class IOSFilePickerHandler: NSObject,
                 asDirectoryPicker: false)
         case "custom":
             let allowed = arguments["allowedExtensions"] as? [String] ?? []
-            let contentTypes = resolveCustomContentTypes(allowed)
+            let contentTypes: [UTType] = openInPlace && (arguments["referenceDirectory"] as? Bool == true)
+                ? [.folder] : (allowed.isEmpty && openInPlace ? [.item] : resolveCustomContentTypes(allowed))
             if contentTypes.isEmpty {
                 self.result?(
                     FlutterError(
@@ -264,6 +270,21 @@ final class IOSFilePickerHandler: NSObject,
             return
         }
 
+        if openInPlace {
+            DispatchQueue.global(qos: .userInitiated).async {
+                let response = Result { try self.references.selected(urls) }
+                DispatchQueue.main.async {
+                    switch response {
+                    case .success(let items): currentResult(items)
+                    case .failure(let error): currentResult(DocumentReferenceStore.failure(error))
+                    }
+                    self.result = nil
+                    self.openInPlace = false
+                }
+            }
+            return
+        }
+
         if isSaveFile {
             eventSink?(false)
             currentResult(urls.first?.path)
@@ -371,7 +392,7 @@ final class IOSFilePickerHandler: NSObject,
     ) {
         let picker = UIDocumentPickerViewController(
             forOpeningContentTypes: contentTypes,
-            asCopy: !asDirectoryPicker)
+            asCopy: !asDirectoryPicker && !openInPlace)
         picker.delegate = self
         picker.presentationController?.delegate = self
         picker.allowsMultipleSelection = allowsMultipleSelection

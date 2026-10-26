@@ -20,6 +20,7 @@ private extension CFString {
 final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
     private let registrar: FlutterPluginRegistrar
     private var skipEntitlementsChecks: Bool = false
+    private let references = DocumentReferenceStore()
     private var eventSink: FlutterEventSink?
 
     init(registrar: FlutterPluginRegistrar) {
@@ -38,6 +39,7 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
     }
 
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        if references.handle(call, result: result) { return }
         switch call.method {
         case "any", "image", "video", "audio", "custom", "media", "pickFiles":
             handleFileSelection(call, result: result)
@@ -112,17 +114,33 @@ final class MacOSFilePickerHandler: NSObject, FlutterStreamHandler {
             dialog.showsHiddenFiles = false
             let allowMultiple = (args["allowMultipleSelection"] as? Bool) ?? (args["allowMultiple"] as? Bool) ?? false
             dialog.allowsMultipleSelection = allowMultiple
-            dialog.canChooseDirectories = false
-            dialog.canChooseFiles = true
+            let openInPlace = args["openInPlace"] as? Bool == true
+            let directory = openInPlace && args["referenceDirectory"] as? Bool == true
+            dialog.canChooseDirectories = directory
+            dialog.canChooseFiles = !directory
             // Bundle-like directories (e.g. .app, .fcpbundle) should be selectable
             // as files, matching how Finder and other native apps present them.
             dialog.treatsFilePackagesAsDirectories = false
             let extensions = args["allowedExtensions"] as? [String] ?? []
-            self.applyExtensions(dialog, extensions, method: call.method)
+            if !directory { self.applyExtensions(dialog, extensions, method: call.method) }
 
             self.present(dialog, viewId: (args["viewId"] as? NSNumber)?.int64Value, result: result) { response in
                 if response != .OK {
                     result(nil)
+                    return
+                }
+
+                if openInPlace {
+                    let urls = dialog.urls
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let response = Result { try self.references.selected(urls) }
+                        DispatchQueue.main.async {
+                            switch response {
+                            case .success(let items): result(items)
+                            case .failure(let error): result(DocumentReferenceStore.failure(error))
+                            }
+                        }
+                    }
                     return
                 }
 

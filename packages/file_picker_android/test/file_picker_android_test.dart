@@ -25,6 +25,41 @@ void main() {
       expect(map['autoPersist'], isTrue);
     });
 
+    test('reference mode is opt in and keeps the original content URI', () {
+      expect(const AndroidSAFOptions().toMap()['cacheFiles'], isTrue);
+      const options = AndroidSAFOptions(
+        grant: AndroidSAFGrant.lifetime,
+        cacheFiles: false,
+      );
+      expect(options.toMap()['cacheFiles'], isFalse);
+      final file = AndroidPlatformFile.fromMap({
+        'path': 'content://documents/document/audio-1',
+        'name': 'song.flac',
+        'safHandle': {
+          'uri': 'content://documents/document/audio-1',
+          'access': 'readOnly',
+        },
+      });
+      expect(file.path, isNull);
+      expect(file.uri, Uri.parse('content://documents/document/audio-1'));
+      expect(file.safHandle!.uri, file.uri);
+    });
+
+    test('reference mode rejects a transient or non-persisted grant', () {
+      expect(
+        () => const AndroidSAFOptions(cacheFiles: false).toMap(),
+        throwsArgumentError,
+      );
+      expect(
+        () => const AndroidSAFOptions(
+          cacheFiles: false,
+          grant: AndroidSAFGrant.lifetime,
+          persistGrant: false,
+        ).toMap(),
+        throwsArgumentError,
+      );
+    });
+
     test('AndroidSAFHandle parses map correctly', () {
       final handle = AndroidSAFHandle.fromMap({
         'uri': 'content://media/external/images/media/1',
@@ -91,6 +126,7 @@ void main() {
         'grant': 'lifetime',
         'access': 'readWrite',
         'autoPersist': false,
+        'cacheFiles': true,
       };
 
       late FilePickerAndroid picker;

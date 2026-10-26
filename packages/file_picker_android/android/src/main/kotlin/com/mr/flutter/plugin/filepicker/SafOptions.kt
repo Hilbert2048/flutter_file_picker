@@ -15,6 +15,8 @@ data class SafOptions(
     val readWrite: Boolean,
     /** Whether a lifetime grant is persisted automatically. */
     val autoPersist: Boolean,
+    /** Whether selection materializes a complete cache copy (legacy default). */
+    val cacheFiles: Boolean,
 ) {
     /** Whether the plugin should call `takePersistableUriPermission`. */
     val persistsGrant: Boolean
@@ -34,6 +36,7 @@ data class SafOptions(
             lifetimeGrant = arguments?.get("grant") == "lifetime",
             readWrite = arguments?.get("access") == "readWrite",
             autoPersist = (arguments?.get("autoPersist") as? Boolean) ?: true,
+            cacheFiles = (arguments?.get("cacheFiles") as? Boolean) ?: true,
         )
     }
 }
