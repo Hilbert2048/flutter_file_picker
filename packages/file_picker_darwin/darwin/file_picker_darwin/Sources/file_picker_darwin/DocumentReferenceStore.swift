@@ -48,6 +48,23 @@ final class DocumentReferenceStore {
                 } catch { DispatchQueue.main.async { result(Self.failure(error)) } }
             }
             return true
+        case "referenceChildren":
+            guard let id = (call.arguments as? [String: Any])?["leaseId"] as? String else {
+                result(FlutterError(code: "invalid_arguments", message: "Missing lease", details: nil))
+                return true
+            }
+            work.async {
+                do {
+                    guard let (root, _) = self.leases[id] else { throw CocoaError(.fileReadNoPermission) }
+                    let urls = try FileManager.default.contentsOfDirectory(at: root,
+                        includingPropertiesForKeys: [.isSymbolicLinkKey], options: [.skipsHiddenFiles])
+                    let children = try urls.filter {
+                        try $0.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink != true
+                    }.map { try self.describe($0) }
+                    DispatchQueue.main.async { result(children) }
+                } catch { DispatchQueue.main.async { result(Self.failure(error)) } }
+            }
+            return true
         case "referenceRelease":
             let id = (call.arguments as? [String: Any])?["leaseId"] as? String
             work.async {

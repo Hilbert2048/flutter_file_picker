@@ -38,6 +38,13 @@ final class DarwinDocumentLease {
   final DarwinDocumentReference reference;
   Future<void>? _release;
 
+  /// Immediate children, without following symbolic links or copying content.
+  Future<List<DarwinDocumentReference>> children() async {
+    final maps = await DarwinDocumentReferences._channel
+        .invokeListMethod<Map<Object?, Object?>>('referenceChildren', {'leaseId': id});
+    return maps?.map(DarwinDocumentReference.fromMap).toList() ?? const [];
+  }
+
   Future<void> release() => _release ??= DarwinDocumentReferences._channel
       .invokeMethod<void>('referenceRelease', {'leaseId': id});
 }
