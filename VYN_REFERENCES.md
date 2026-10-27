@@ -29,6 +29,7 @@ final lease = await DarwinDocumentReferences.acquire(refs.single.bookmark);
 try {
   // Persist lease.reference.bookmark again: stale bookmarks are refreshed.
   // Use lease.reference.uri while the lease is alive.
+  // Directory lease: await lease.children() gives immediate child references.
   // Coordinate document reads as required by the provider.
 } finally {
   await lease.release();
@@ -68,12 +69,16 @@ and returns before opening an input stream or allocating a cached audio path.
 The URI is `content://`; `path` is null. Read/play through ContentResolver or a
 URI-capable player, not dart:io File/XFile. Existing lifetime/release-grant APIs
 are reused. Grant failures are errors, never a fallback to copying.
+`AndroidDocumentReferences.describe(uri)`, `children(uri)` and `metadata(uri)`
+read provider descriptors/header metadata off the UI thread. Child identities use
+provider authority + document ID, matching single-file and tree selection. Child
+URIs retain the tree grant; no input stream is copied to cache.
 `cacheFiles` defaults to true. Reference mode bypasses media compression.
 
 ## Validation
 
 - Dart: `flutter test --no-pub packages/file_picker_darwin/test packages/file_picker_android/test`
-  (42 passed, including defaults, cancellation, bookmark refresh/release and URI mode).
+  (44 passed, including defaults, cancellation, bookmark refresh/release and URI mode).
 - Dart analysis of both platform packages passed.
 - Android: Vyn isolated checkout `./gradlew :android_file_picker:testDebugUnitTest`
   passed, including Kotlin compilation and SAF option policy tests.
@@ -90,8 +95,11 @@ are reused. Grant failures are errors, never a fallback to copying.
   existing grants are preserved (native JVM regression included).
 
 Simulator evidence does not certify cloud/offline behavior or permission revocation
-on real hardware. Android device behavior and sandboxed macOS persistence still
-need native acceptance. Vyn's macOS host build currently has unrelated missing
+on real hardware. Vyn's complete importer additionally imported all 225 files with zero failures,
+kept running after changing pages, and persisted 225 references with no audio in
+its music directory. The Android API 33 emulator imported nested FLAC/MP3 via SAF
+and actually decoded FLAC with an advancing playback position. Sandboxed macOS
+persistence and cloud/revocation scenarios still need native acceptance. Vyn's macOS host build currently has unrelated missing
 PlayingMusicQueue.swift/PlayingWindowPreparation.swift inputs; the Darwin plugin
 compiled before the host failed.
 
