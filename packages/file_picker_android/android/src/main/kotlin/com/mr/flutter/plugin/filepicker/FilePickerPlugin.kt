@@ -97,6 +97,7 @@ class FilePickerPlugin : MethodCallHandler, FlutterPlugin,
         }
     }
 
+    private var references: DocumentReferenceAccess? = null
     private var activityBinding: ActivityPluginBinding? = null
     private var delegate: FilePickerDelegate? = null
     private var application: Application? = null
@@ -108,6 +109,13 @@ class FilePickerPlugin : MethodCallHandler, FlutterPlugin,
     private var channel: MethodChannel? = null
 
     override fun onMethodCall(call: MethodCall, rawResult: MethodChannel.Result) {
+        if (call.method.startsWith("document")) {
+            val context = pluginBinding?.applicationContext
+            if (context != null) {
+                val access = references ?: DocumentReferenceAccess(context).also { references = it }
+                if (access.handle(call, rawResult)) return
+            }
+        }
         if (this.activity == null) {
             rawResult.error(
                 "no_activity",
@@ -255,6 +263,8 @@ class FilePickerPlugin : MethodCallHandler, FlutterPlugin,
     }
 
     override fun onDetachedFromEngine(binding: FlutterPluginBinding) {
+        references?.close()
+        references = null
         this.pluginBinding = null
     }
 
